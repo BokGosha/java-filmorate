@@ -48,7 +48,7 @@ class UserControllerValidationTest {
             "2000-01-01, true",
             "2023-12-31, true",
             "2026-01-06, true",
-            "2026-01-07, false"
+            "2026-01-10, false"
     })
     void validateBirthday(String birthdayStr, boolean expectedValid) {
         if (expectedValid) {
