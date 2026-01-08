@@ -74,6 +74,10 @@ public class UserController {
                 oldUser.setName(newUser.getName());
             }
 
+            if (newUser.getEmail() != null) {
+                oldUser.setEmail(newUser.getEmail());
+            }
+
             if (newUser.getLogin() != null) {
                 validateLogin(newUser.getLogin());
 
