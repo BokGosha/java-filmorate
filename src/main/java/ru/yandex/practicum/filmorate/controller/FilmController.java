@@ -109,26 +109,26 @@ public class FilmController {
         throw new NotFoundException("Фильм с id " + newFilm.getId() + " не найден");
     }
 
-    public void validateName(String name) {
+    private void validateName(String name) {
         if (films.values().stream().anyMatch(f -> f.getName().equals(name))) {
             throw new ValidationException("Фильм с названием " + name + " уже существует");
         }
     }
 
-    public void validateDescription(String description) {
+    private void validateDescription(String description) {
         if (description.length() > 200) {
             throw new ValidationException("Описание фильма превышает 200 символов");
         }
     }
 
-    public void validateReleaseDate(String releaseDate) {
+    private void validateReleaseDate(String releaseDate) {
         if (LocalDate.parse(releaseDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")).isBefore(LocalDate.of(1895, 12, 28))) {
             throw new ValidationException("Дата релиза фильма раньше 28 декабря 1895 года");
         }
     }
 
-    public void validateDuration(Integer duration) {
-        if (duration < 0) {
+    private void validateDuration(Integer duration) {
+        if (duration <= 0) {
             throw new ValidationException("Продолжительность фильма есть неположительное число");
         }
     }

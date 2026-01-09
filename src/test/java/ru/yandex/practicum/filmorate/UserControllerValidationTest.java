@@ -2,14 +2,12 @@ package ru.yandex.practicum.filmorate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class UserControllerValidationTest {
 
@@ -18,46 +16,6 @@ class UserControllerValidationTest {
     @BeforeEach
     void setUp() {
         controller = new UserController();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "user1",
-            "user_login123",
-            "a"
-    })
-    void validateLogin_withoutSpaces_ok(String validLogin) {
-        assertDoesNotThrow(() -> controller.validateLogin(validLogin));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {
-            "login with space",
-            " login",
-            "login ",
-            " l o g i n "
-    })
-    void validateLogin_withSpaces_throws(String invalidLogin) {
-        ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.validateLogin(invalidLogin));
-        assertEquals("Логин содержит пробелы", exception.getMessage());
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            "2000-01-01, true",
-            "2023-12-31, true",
-            "2026-01-06, true",
-            "2026-01-10, false"
-    })
-    void validateBirthday(String birthdayStr, boolean expectedValid) {
-        if (expectedValid) {
-            assertDoesNotThrow(() -> controller.validateBirthday(birthdayStr));
-        } else {
-            ValidationException exception = assertThrows(ValidationException.class,
-                    () -> controller.validateBirthday(birthdayStr));
-            assertEquals("День рождения указан в будущем", exception.getMessage());
-        }
     }
 
     @Test
@@ -97,5 +55,17 @@ class UserControllerValidationTest {
         ValidationException exception = assertThrows(ValidationException.class,
                 () -> controller.updateUser(update));
         assertEquals("Логин содержит пробелы", exception.getMessage());
+    }
+
+    @Test
+    void validateBirthday_futureDate_throws() {
+        User user = new User();
+        user.setEmail("test@example.com");
+        user.setLogin("valid");
+        user.setBirthday("2027-12-12");
+
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> controller.createUser(user));
+        assertEquals("День рождения указан в будущем", exception.getMessage());
     }
 }

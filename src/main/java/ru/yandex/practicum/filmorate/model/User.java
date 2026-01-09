@@ -2,12 +2,8 @@ package ru.yandex.practicum.filmorate.model;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
-/**
- * User
- */
 @Data
 public class User {
 
@@ -16,7 +12,6 @@ public class User {
     @Email
     private String email;
 
-    @NotNull
     @NotBlank
     private String login;
 

@@ -99,13 +99,13 @@ public class UserController {
         throw new NotFoundException("Пользователь с id " + newUser.getId() + " не найден");
     }
 
-    public void validateLogin(String login) {
+    private void validateLogin(String login) {
         if (login.contains(" ")) {
             throw new ValidationException("Логин содержит пробелы");
         }
     }
 
-    public void validateBirthday(String birthday) {
+    private void validateBirthday(String birthday) {
         if (LocalDate.parse(birthday, DateTimeFormatter.ofPattern("yyyy-MM-dd")).isAfter(LocalDate.now())) {
             throw new ValidationException("День рождения указан в будущем");
         }
