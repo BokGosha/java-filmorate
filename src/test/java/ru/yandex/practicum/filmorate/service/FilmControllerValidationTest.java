@@ -1,20 +1,21 @@
-package ru.yandex.practicum.filmorate;
+package ru.yandex.practicum.filmorate.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FilmControllerValidationTest {
+class FilmServiceValidationTest {
 
-    private FilmController controller;
+    private FilmService service;
 
     @BeforeEach
     void setUp() {
-        controller = new FilmController();
+        service = new FilmService(new InMemoryFilmStorage(new InMemoryUserStorage()));
     }
 
     @Test
@@ -25,7 +26,7 @@ class FilmControllerValidationTest {
         film.setDuration(100);
         film.setDescription("a".repeat(200));
 
-        assertDoesNotThrow(() -> controller.createFilm(film));
+        assertDoesNotThrow(() -> service.createFilm(film));
     }
 
     @Test
@@ -37,7 +38,7 @@ class FilmControllerValidationTest {
         film.setDescription("a".repeat(201));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.createFilm(film));
+                () -> service.createFilm(film));
         assertEquals("Описание фильма превышает 200 символов", exception.getMessage());
     }
 
@@ -50,7 +51,7 @@ class FilmControllerValidationTest {
         film.setDescription("a".repeat(200));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.createFilm(film));
+                () -> service.createFilm(film));
         assertEquals("Продолжительность фильма есть неположительное число", exception.getMessage());
     }
 
@@ -63,7 +64,7 @@ class FilmControllerValidationTest {
         film.setDescription("a".repeat(200));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.createFilm(film));
+                () -> service.createFilm(film));
         assertEquals("Продолжительность фильма есть неположительное число", exception.getMessage());
     }
 
@@ -75,7 +76,7 @@ class FilmControllerValidationTest {
         film.setDuration(1);
         film.setDescription("a".repeat(200));
 
-        assertDoesNotThrow(() -> controller.createFilm(film));
+        assertDoesNotThrow(() -> service.createFilm(film));
     }
 
     @Test
@@ -87,7 +88,7 @@ class FilmControllerValidationTest {
         film.setDescription("a".repeat(200));
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.createFilm(film));
+                () -> service.createFilm(film));
         assertEquals("Дата релиза фильма раньше 28 декабря 1895 года", exception.getMessage());
     }
 
@@ -99,6 +100,6 @@ class FilmControllerValidationTest {
         film.setDuration(1);
         film.setDescription("a".repeat(200));
 
-        assertDoesNotThrow(() -> controller.createFilm(film));
+        assertDoesNotThrow(() -> service.createFilm(film));
     }
 }
