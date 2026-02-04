@@ -43,6 +43,7 @@ public class UserService {
     }
 
     public User createUser(User user) {
+        validateLogin(user.getLogin());
         validateBirthday(user.getBirthday());
 
         if (user.getName() == null) {
