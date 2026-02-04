@@ -1,21 +1,21 @@
-package ru.yandex.practicum.filmorate;
+package ru.yandex.practicum.filmorate.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-class UserControllerValidationTest {
+class UserServiceValidationTest {
 
-    private UserController controller;
+    private UserService service;
 
     @BeforeEach
     void setUp() {
-        controller = new UserController();
+        service = new UserService(new InMemoryUserStorage());
     }
 
     @Test
@@ -25,7 +25,7 @@ class UserControllerValidationTest {
         user.setLogin("testuser");
         user.setBirthday("2001-12-12");
 
-        User created = controller.createUser(user);
+        User created = service.createUser(user);
 
         assertEquals("testuser", created.getName());
     }
@@ -36,7 +36,7 @@ class UserControllerValidationTest {
         update.setEmail("new@example.com");
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.updateUser(update));
+                () -> service.updateUser(update));
         assertEquals("Не указан id пользователя", exception.getMessage());
     }
 
@@ -46,14 +46,14 @@ class UserControllerValidationTest {
         user.setEmail("test@example.com");
         user.setLogin("valid");
         user.setBirthday("2001-12-12");
-        User created = controller.createUser(user);
+        User created = service.createUser(user);
 
         User update = new User();
         update.setId(created.getId());
         update.setLogin("invalid login");
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.updateUser(update));
+                () -> service.updateUser(update));
         assertEquals("Логин содержит пробелы", exception.getMessage());
     }
 
@@ -65,7 +65,7 @@ class UserControllerValidationTest {
         user.setBirthday("2027-12-12");
 
         ValidationException exception = assertThrows(ValidationException.class,
-                () -> controller.createUser(user));
+                () -> service.createUser(user));
         assertEquals("День рождения указан в будущем", exception.getMessage());
     }
 }
