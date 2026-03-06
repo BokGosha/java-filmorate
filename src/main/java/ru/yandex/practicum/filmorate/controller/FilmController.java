@@ -3,10 +3,12 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.dto.film.FilmDto;
+import ru.yandex.practicum.filmorate.dto.film.NewFilmRequest;
+import ru.yandex.practicum.filmorate.dto.film.UpdateFilmRequest;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
-import java.util.Collection;
+import java.util.List;
 
 @RestController
 @RequestMapping("/films")
@@ -16,27 +18,27 @@ public class FilmController {
     private final FilmService filmService;
 
     @GetMapping
-    public Collection<Film> getFilms() {
+    public List<FilmDto> getFilms() {
         return filmService.getFilms();
     }
 
     @PostMapping
-    public Film createFilm(@Valid @RequestBody Film film) {
-        return filmService.createFilm(film);
+    public FilmDto createFilm(@Valid @RequestBody NewFilmRequest request) {
+        return filmService.createFilm(request);
     }
 
     @PutMapping
-    public Film updateFilm(@RequestBody Film newFilm) {
-        return filmService.updateFilm(newFilm);
+    public FilmDto updateFilm(@RequestBody UpdateFilmRequest request) {
+        return filmService.updateFilm(request);
     }
 
     @PutMapping("/{id}/like/{userId}")
-    public Film likeFilm(@PathVariable long userId, @PathVariable long id) {
+    public FilmDto likeFilm(@PathVariable long userId, @PathVariable long id) {
         return filmService.addLike(userId, id);
     }
 
     @GetMapping("/popular")
-    public Collection<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
         return filmService.getPopularFilms(count);
     }
 
@@ -46,7 +48,7 @@ public class FilmController {
     }
 
     @GetMapping("/{id}")
-    public Film getFilmById(@PathVariable long id) {
+    public FilmDto getFilmById(@PathVariable long id) {
         return filmService.getFilm(id);
     }
 }
