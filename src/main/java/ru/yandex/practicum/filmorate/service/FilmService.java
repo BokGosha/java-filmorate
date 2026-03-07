@@ -104,7 +104,7 @@ public class FilmService {
         if (requestGenres != null) {
             List<Long> genreIds = requestGenres.stream().map(Genre::getId).toList();
             for (Long genreId : genreIds) {
-                if (genreId < 1 ||  genreId > 5) {
+                if (genreId < 1 ||  genreId > 6) {
                     log.warn("Жанр с id={} не найден", genreId);
                     throw new NotFoundException("Жанр с id=" + genreId + " не найден");
                 }
