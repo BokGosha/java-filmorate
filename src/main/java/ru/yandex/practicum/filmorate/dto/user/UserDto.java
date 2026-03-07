@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto.user;
 
 import lombok.Data;
 
@@ -7,12 +7,12 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Data
-public class User {
+public class UserDto {
 
     private Long id;
     private String email;
     private String login;
     private String name;
     private LocalDate birthday;
-    private Set<User> friends = new HashSet<>();
+    private Set<FriendDto> friends = new HashSet<>();
 }
