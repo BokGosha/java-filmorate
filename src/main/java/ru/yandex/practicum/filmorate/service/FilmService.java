@@ -3,9 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.filmorate.dal.genre.GenreStorage;
-import ru.yandex.practicum.filmorate.dal.mpa.MpaStorage;
-import ru.yandex.practicum.filmorate.dal.user.UserStorage;
 import ru.yandex.practicum.filmorate.dto.film.FilmDto;
 import ru.yandex.practicum.filmorate.dto.film.NewFilmRequest;
 import ru.yandex.practicum.filmorate.dto.film.UpdateFilmRequest;
@@ -29,9 +26,9 @@ import java.util.stream.Collectors;
 public class FilmService {
 
     private final FilmStorage filmStorage;
-    private final MpaStorage mpaStorage;
-    private final GenreStorage genreStorage;
-    private final UserStorage userStorage;
+    private final MpaService mpaService;
+    private final GenreService genreService;
+    private final UserService userService;
 
     public FilmDto addLike(long userId, long filmId) {
         filmStorage.saveLike(userId, filmId);
@@ -48,9 +45,11 @@ public class FilmService {
     }
 
     public List<FilmDto> getFilms() {
-        return filmStorage.findAll()
-                .stream()
-                .peek(this::setMpaGenresLikes)
+        List<Film> films = filmStorage.findAll();
+
+        setMpaGenresAndLikesForFilms(films);
+
+        return films.stream()
                 .map(FilmMapper::mapToFilmDto)
                 .toList();
     }
@@ -64,11 +63,31 @@ public class FilmService {
     }
 
     public List<FilmDto> getPopularFilms(int count) {
-        return filmStorage.findPopular(count)
-                .stream()
-                .peek(this::setMpaGenresLikes)
+        List<Film> films = filmStorage.findPopular(count);
+
+        setMpaGenresAndLikesForFilms(films);
+
+        return films.stream()
                 .map(FilmMapper::mapToFilmDto)
                 .toList();
+    }
+
+    private void setMpaGenresAndLikesForFilms(List<Film> films) {
+        List<Long> filmIds = films.stream().map(Film::getId).toList();
+
+        Map<Long, Set<Genre>> genresByFilmIds =
+                filmStorage.findGenresForFilmIds(filmIds);
+        Map<Long, Mpa> mpaByFilmIds =
+                filmStorage.findMpaForFilmIds(filmIds);
+        Map<Long, Set<LikeDto>> likesByFilmIds =
+                userService.getAllLikesByFilmIds(filmIds);
+
+        films.forEach(film -> {
+                    film.setGenres(genresByFilmIds.get(film.getId()));
+                    film.setMpa(mpaByFilmIds.get(film.getId()));
+                    film.setLikes(likesByFilmIds.get(film.getId()));
+                }
+        );
     }
 
     public FilmDto createFilm(NewFilmRequest request) {
@@ -77,17 +96,20 @@ public class FilmService {
         Film film = FilmMapper.mapToFilm(request);
 
         if (request.hasMpa()) {
-            Mpa mpa = getMpaId(request.getMpa().getId());
-
+            Mpa mpa = mpaService.getMpa(request.getMpa().getId());
             film.setMpa(mpa);
         }
 
         Set<Genre> requestGenres = request.getGenres();
         if (requestGenres != null) {
-            Set<Genre> genres = requestGenres.stream()
-                    .map(genre -> getGenreById(genre.getId()))
-                    .sorted(Comparator.comparingLong(Genre::getId))
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            List<Long> genreIds = requestGenres.stream().map(Genre::getId).toList();
+            for (Long genreId : genreIds) {
+                if (genreId < 1 ||  genreId > 5) {
+                    log.warn("Жанр с id={} не найден", genreId);
+                    throw new NotFoundException("Жанр с id=" + genreId + " не найден");
+                }
+            }
+            Set<Genre> genres = genreService.getGenresByIds(genreIds);
             film.setGenres(genres);
         }
 
@@ -123,7 +145,6 @@ public class FilmService {
         }
     }
 
-
     private void validateDescription(String description) {
         if (description.length() > 200) {
             throw new ValidationException("Описание фильма превышает 200 символов");
@@ -144,39 +165,22 @@ public class FilmService {
 
     private void setMpaGenresLikes(Film film) {
         if (film.getMpa() != null) {
-            Mpa mpa = getMpaId(film.getMpa().getId());
-
+            Mpa mpa = mpaService.getMpa(film.getMpa().getId());
             film.setMpa(mpa);
         }
 
-        Set<Genre> genres = genreStorage.findByFilmId(film.getId())
+        Set<Genre> genres = genreService.getGenresByFilmId(film.getId())
                 .stream()
                 .sorted(Comparator.comparingLong(Genre::getId))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         film.setGenres(genres);
 
-        Set<LikeDto> likes = userStorage.findAllLikes(film.getId())
+        Set<LikeDto> likes = userService.getAllLikesByFilmId(film.getId())
                 .stream()
                 .map(UserMapper::mapToLikeDto)
                 .sorted(Comparator.comparingLong(LikeDto::getId))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         film.setLikes(likes);
-    }
-
-    private Mpa getMpaId(Long mpaId) {
-        return mpaStorage.findById(mpaId)
-                .orElseThrow(() -> {
-                    log.warn("Рейтинг с id={} не найден", mpaId);
-                    return new NotFoundException("Рейтинг с id=" + mpaId + " не найден");
-                });
-    }
-
-    private Genre getGenreById(Long genreId) {
-        return genreStorage.findById(genreId)
-                .orElseThrow(() -> {
-                    log.warn("Жанр с id={} не найден", genreId);
-                    return new NotFoundException("Жанр с id=" + genreId + " не найден");
-                });
     }
 
     private Film getFilmById(Long filmId) {

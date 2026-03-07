@@ -12,8 +12,13 @@ import java.util.Optional;
 @Repository
 public class DbMpaStorage extends BaseRepository<Mpa> implements MpaStorage {
 
-    private static final String FIND_ALL_QUERY = "SELECT * FROM mpas";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM mpas WHERE id = ?";
+    private static final String FIND_ALL_QUERY =
+            "SELECT * " +
+                    "FROM mpas";
+    private static final String FIND_BY_ID_QUERY =
+            "SELECT * " +
+                    "FROM mpas " +
+                    "WHERE id = ?";
 
     public DbMpaStorage(JdbcTemplate jdbc, RowMapper<Mpa> mapper) {
         super(jdbc, mapper);

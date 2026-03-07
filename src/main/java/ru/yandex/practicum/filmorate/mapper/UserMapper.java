@@ -20,11 +20,14 @@ public final class UserMapper {
         dto.setEmail(user.getEmail());
         dto.setBirthday(user.getBirthday());
 
-        Set<FriendDto> friends = user.getFriends()
-                .stream()
-                .map(UserMapper::mapToFriendDto)
-                .collect(Collectors.toSet());
-        dto.setFriends(friends);
+        Set<User> users = user.getFriends();
+        if (users != null) {
+            Set<FriendDto> friends = user.getFriends()
+                    .stream()
+                    .map(UserMapper::mapToFriendDto)
+                    .collect(Collectors.toSet());
+            dto.setFriends(friends);
+        }
 
         return dto;
     }

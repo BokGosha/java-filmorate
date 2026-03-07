@@ -6,21 +6,27 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.BaseRepository;
 import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Repository
 public class DbGenreStorage extends BaseRepository<Genre> implements GenreStorage {
 
-    private static final String FIND_ALL_QUERY = "SELECT * FROM genres";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM genres WHERE id = ?";
-    private static final String FIND_GENRES_BY_FILM_ID =
-            "SELECT g.id, g.name " +
+    private static final String FIND_ALL_QUERY =
+            "SELECT * " +
+                    "FROM genres";
+    private static final String FIND_BY_ID_QUERY =
+            "SELECT * " +
+                    "FROM genres " +
+                    "WHERE id = ?";
+    private static final String FIND_GENRES_BY_FILM_ID_QUERY =
+            "SELECT * " +
                     "FROM genres g " +
                     "JOIN film_genres fg ON g.id = fg.genre_id " +
                     "WHERE fg.film_id = ?";
+    private static final String FIND_GENRES_BY_IDS_QUERY =
+            "SELECT * " +
+                    "FROM genres " +
+                    "WHERE id IN (%s)";
 
     public DbGenreStorage(JdbcTemplate jdbc, RowMapper<Genre> mapper) {
         super(jdbc, mapper);
@@ -38,6 +44,18 @@ public class DbGenreStorage extends BaseRepository<Genre> implements GenreStorag
 
     @Override
     public Set<Genre> findByFilmId(long filmId) {
-        return new HashSet<>(findMany(FIND_GENRES_BY_FILM_ID, filmId));
+        return new HashSet<>(findMany(FIND_GENRES_BY_FILM_ID_QUERY, filmId));
+    }
+
+    @Override
+    public Set<Genre> findGenresByIds(List<Long> genreIds) {
+        String placeholders = setPlaceholders(genreIds.size());
+        String sql = FIND_GENRES_BY_IDS_QUERY.formatted(placeholders);
+
+        return new HashSet<>(findMany(sql, genreIds.toArray()));
+    }
+
+    private String setPlaceholders(int size) {
+        return String.join(", ", Collections.nCopies(size, "?"));
     }
 }

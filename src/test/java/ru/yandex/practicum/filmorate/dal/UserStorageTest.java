@@ -17,6 +17,7 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -215,7 +216,7 @@ class UserStorageTest {
         userStorage.saveFriend(user2.getId(), commonFriend.getId());
         userStorage.saveFriend(user1.getId(), notCommonFriend.getId());
 
-        List<User> commonFriends = userStorage.findCommonFriends(user1.getId(), user2.getId());
+        List<User> commonFriends = new ArrayList<>(userStorage.findCommonFriends(user1.getId(), user2.getId()));
 
         assertThat(commonFriends)
                 .extracting(User::getId)
@@ -234,7 +235,7 @@ class UserStorageTest {
         userStorage.saveFriend(user1.getId(), friend1.getId());
         userStorage.saveFriend(user2.getId(), friend2.getId());
 
-        List<User> commonFriends = userStorage.findCommonFriends(user1.getId(), user2.getId());
+        List<User> commonFriends = new ArrayList<>(userStorage.findCommonFriends(user1.getId(), user2.getId()));
 
         assertThat(commonFriends).isEmpty();
     }

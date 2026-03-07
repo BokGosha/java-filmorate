@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dto.user.LikeDto;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.dal.BaseRepository;
 
@@ -13,19 +14,32 @@ import java.util.*;
 @Repository
 public class DbUserStorage extends BaseRepository<User> implements UserStorage {
 
-    private static final String FIND_ALL_QUERY = "SELECT * FROM users";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM users WHERE id = ?";
-    private static final String INSERT_QUERY = "INSERT INTO users (name, login, email, birthday) VALUES (?, ?, ?, ?)";
-    private static final String UPDATE_QUERY = "UPDATE users SET login = ?, name = ?, email = ?, birthday = ? WHERE id = ?";
+    private static final String FIND_ALL_QUERY =
+            "SELECT * " +
+                    "FROM users";
+    private static final String FIND_BY_ID_QUERY =
+            "SELECT * " +
+                    "FROM users " +
+                    "WHERE id = ?";
+    private static final String INSERT_QUERY =
+            "INSERT INTO users (name, login, email, birthday) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_QUERY =
+            "UPDATE users SET login = ?, name = ?, email = ?, birthday = ? " +
+                    "WHERE id = ?";
     private static final String INSERT_FRIEND_WITH_STATUS =
             "INSERT INTO user_friends (user_id, friend_id, friend_status) VALUES (?, ?, ?)";
     private static final String FIND_FRIENDS_QUERY =
-            "SELECT u.* FROM users u JOIN user_friends uf ON (uf.user_id = ? AND u.id = uf.friend_id) " +
+            "SELECT u.* " +
+                    "FROM users u " +
+                    "JOIN user_friends uf ON (uf.user_id = ? AND u.id = uf.friend_id) " +
                     "  OR (uf.friend_id = ? AND u.id = uf.user_id AND uf.friend_status = 'CONFIRMED')";
     private static final String SELECT_FRIEND_STATUS =
-            "SELECT friend_status FROM user_friends WHERE user_id = ? AND friend_id = ?";
+            "SELECT friend_status " +
+                    "FROM user_friends " +
+                    "WHERE user_id = ? AND friend_id = ?";
     private static final String DELETE_FRIEND_QUERY =
-            "DELETE FROM user_friends WHERE user_id = ? AND friend_id = ?";
+            "DELETE FROM user_friends " +
+                    "WHERE user_id = ? AND friend_id = ?";
     private static final String DOWNGRADE_TO_UNCONFIRMED_QUERY =
             "UPDATE user_friends SET friend_status = 'UNCONFIRMED' " +
                     "WHERE user_id = ? AND friend_id = ? AND friend_status = 'CONFIRMED'";
@@ -45,6 +59,16 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
                     "FROM users u " +
                     "JOIN film_likes fl ON u.id = fl.user_id " +
                     "WHERE fl.film_id = ?";
+    private static final String FIND_FRIENDS_FOR_USER_IDS_QUERY =
+            "SELECT uf.user_id, u.* " +
+                    "FROM user_friends uf " +
+                    "JOIN users u ON u.id = uf.friend_id " +
+                    "WHERE uf.user_id IN (%s)";
+    private static final String FIND_LIKES_FOR_FILM_IDS_QUERY =
+            "SELECT fl.film_id, u.id, u.login " +
+                    "FROM film_likes fl " +
+                    "JOIN users u ON fl.user_id = u.id " +
+                    "WHERE fl.film_id IN (%s)";
 
     public DbUserStorage(JdbcTemplate jdbc, RowMapper<User> mapper) {
         super(jdbc, mapper);
@@ -63,12 +87,51 @@ public class DbUserStorage extends BaseRepository<User> implements UserStorage {
     }
 
     @Override
-    public List<User> findCommonFriends(long user1Id, long user2Id) {
+    public Map<Long, Set<LikeDto>> findLikesForFilmsIds(List<Long> filmIds) {
+        String placeholders = setPlaceholders(filmIds.size());
+        String sql = FIND_LIKES_FOR_FILM_IDS_QUERY.formatted(placeholders);
+
+        return jdbc.query(sql, rs -> {
+            Map<Long, Set<LikeDto>> result = new HashMap<>();
+            while (rs.next()) {
+                long filmId = rs.getLong("film_id");
+                LikeDto like = new LikeDto();
+                like.setId(rs.getLong("id"));
+                like.setLogin(rs.getString("login"));
+                result.computeIfAbsent(filmId, id -> new HashSet<>()).add(like);
+            }
+            return result;
+        }, filmIds.toArray());
+    }
+
+    @Override
+    public Map<Long, Set<User>> findFriendsForUserIds(List<Long> userIds) {
+        String placeholders = setPlaceholders(userIds.size());
+        String sql = FIND_FRIENDS_FOR_USER_IDS_QUERY.formatted(placeholders);
+
+        return jdbc.query(sql, rs -> {
+            Map<Long, Set<User>> result = new HashMap<>();
+
+            while (rs.next()) {
+                long ownerId = rs.getLong("user_id");
+                User friend = mapper.mapRow(rs, rs.getRow());
+                result.computeIfAbsent(ownerId, id -> new HashSet<>()).add(friend);
+            }
+            return result;
+        }, userIds.toArray());
+    }
+
+    private String setPlaceholders(int size) {
+        return String.join(", ", Collections.nCopies(size, "?"));
+    }
+
+    @Override
+    public Set<User> findCommonFriends(long user1Id, long user2Id) {
         List<User> friends = findMany(FIND_COMMON_FRIENDS_QUERY, user1Id, user2Id);
 
         log.info("Общие друзья пользователей с id={} и id={} получены, количество друзей: {}",
                 user1Id, user2Id, friends.size());
-        return friends;
+        return new HashSet<>(friends);
     }
 
     @Override

@@ -3,10 +3,7 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.dto.user.FriendDto;
-import ru.yandex.practicum.filmorate.dto.user.UpdateUserRequest;
-import ru.yandex.practicum.filmorate.dto.user.UserDto;
-import ru.yandex.practicum.filmorate.dto.user.NewUserRequest;
+import ru.yandex.practicum.filmorate.dto.user.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
@@ -14,8 +11,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.dal.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -25,9 +21,10 @@ public class UserService {
     private final UserStorage userStorage;
 
     public List<UserDto> getUsers() {
-        return userStorage.findAll()
-                .stream()
-                .peek(this::setFriends)
+        List<User> users = userStorage.findAll();
+        setFriendsForUsers(users);
+
+        return users.stream()
                 .map(UserMapper::mapToUserDto)
                 .toList();
     }
@@ -35,9 +32,14 @@ public class UserService {
     public UserDto getUser(long userId) {
         User user = getUserById(userId);
 
-        setFriends(user);
+        Set<User> friends = userStorage.findAllFriends(userId);
+        user.setFriends(friends);
 
         return UserMapper.mapToUserDto(user);
+    }
+
+    public Map<Long, Set<LikeDto>> getAllLikesByFilmIds(List<Long> filmIds) {
+        return userStorage.findLikesForFilmsIds(filmIds);
     }
 
     public UserDto createUser(NewUserRequest request) {
@@ -54,6 +56,10 @@ public class UserService {
         user = userStorage.save(user);
 
         return UserMapper.mapToUserDto(user);
+    }
+
+    public Set<User> getAllLikesByFilmId(long filmId) {
+        return new HashSet<>(userStorage.findAllLikes(filmId));
     }
 
     public UserDto updateUser(long userId, UpdateUserRequest request) {
@@ -73,12 +79,12 @@ public class UserService {
     }
 
     public UserDto addFriend(long userId, long friendId) {
-        User user = getUserById(userId);
-        User friend = getUserById(friendId);
+        getUserById(userId);
+        getUserById(friendId);
 
         userStorage.saveFriend(userId, friendId);
 
-        setFriends(user);
+        User user = getUserById(userId);
 
         return UserMapper.mapToUserDto(user);
     }
@@ -94,26 +100,37 @@ public class UserService {
         getUserById(user1Id);
         getUserById(user2Id);
 
-        return userStorage.findCommonFriends(user1Id, user2Id)
+        List<User> commonFriends = new ArrayList<>(userStorage.findCommonFriends(user1Id, user2Id));
+        setFriendsForUsers(commonFriends);
+
+        return commonFriends
                 .stream()
-                .peek(this::setFriends)
                 .map(UserMapper::mapToFriendDto)
                 .toList();
     }
 
     public List<FriendDto> getFriends(long userId) {
-        User user = getUserById(userId);
+        getUserById(userId);
 
-        return userStorage.findAllFriends(userId)
-                .stream()
-                .peek(this::setFriends)
+        List<User> friends = new ArrayList<>(userStorage.findAllFriends(userId));
+        setFriendsForUsers(friends);
+
+        return friends.stream()
                 .map(UserMapper::mapToFriendDto)
                 .toList();
     }
 
-    private void setFriends(User friend) {
-        Set<User> friends = userStorage.findAllFriends(friend.getId());
-        friend.setFriends(friends);
+    private void setFriendsForUsers(List<User> users) {
+        List<Long> userIds = users.stream()
+                .map(User::getId)
+                .toList();
+
+        Map<Long, Set<User>> friendsByUserIds =
+                userStorage.findFriendsForUserIds(userIds);
+
+        users.forEach(u ->
+                u.setFriends(friendsByUserIds.get(u.getId()))
+        );
     }
 
     private User getUserById(long userId) {
